@@ -52,7 +52,7 @@ ascii_decoder adec(.scan_code(keycode[7:0]), .ascii_code(ascii_code));
 
 
 
-seg7decimal sevenSeg (
+Seg_7_Display sevenSeg (
 .x(ascii_code[7:0]),
 .clk(CLK100MHZ),
 .seg(SEG[6:0]),
