@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: Digilent Inc.
-// Engineer: Thomas Kappenman
+// Company: 
+// Engineer: 
 // 
-// Create Date: 03/03/2015 09:33:36 PM
+// Create Date: 12/05/2020 09:33:36 AM
 // Design Name: 
 // Module Name: PS2Receiver
-// Project Name: Nexys4DDR Keyboard Demo
-// Target Devices: Nexys4DDR
+// Project Name: 
+// Target Devices:
 // Tool Versions: 
 // Description: PS2 Receiver module used to shift in keycodes from a keyboard plugged into the PS2 port
 // 

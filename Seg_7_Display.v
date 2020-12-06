@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: Digilent Inc.
-// Engineer: Thomas Kappenman
+// Company: 
+// Engineer:
 // 
-// Create Date:    03/03/2015 09:08:33 PM 
+// Create Date:    12/05/2020 09:08:33 AM 
 // Design Name: 
-// Module Name:    seg7decimal 
-// Project Name: Nexys4DDR Keyboard Demo
-// Target Devices: Nexys4DDR
+// Module Name:    
+// Project Name: 
+// Target Devices: 
 // Tool Versions: 
 // Description: 7 segment display driver
 // 
