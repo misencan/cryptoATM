@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: Digilent Inc.
-// Engineer: Thomas Kappenman
+// Company: 
+// Engineer: 
 // 
-// Create Date: 03/03/2015 09:06:31 PM
+// Create Date: 12/05/2020 09:06:31 AM
 // Design Name: 
 // Module Name: top
-// Project Name: Nexys4DDR Keyboard Demo
-// Target Devices: Nexys4DDR
+// Project Name: 
+// Target Devices: 
 // Tool Versions: 
 // Description: This project takes keyboard input from the PS2 port,
 //  and outputs the keyboard scan code to the 7 segment display on the board.
