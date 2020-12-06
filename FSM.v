@@ -49,7 +49,8 @@ module FSM(
         PIN_INCORRECT = 4'b0100,
         AMT_VALID = 4'b0101,
         AMT_INVALID = 4'b0110,
-        EXIT = 4'b0111;
+        EXIT = 4'b0111,
+        INPUT_COMPLETE = 4'b1000;
         
     // Parameter for Input style (Pretty sure these will work for all state transitions/input requirements, let me know though)
     parameter [3:0]
@@ -77,8 +78,6 @@ module FSM(
         WITHDRAW_OPTION = 2'b10,
         TRANSFER_OPTION = 2'b11;
     
-    
-    
     reg [10:0] state;
     parameter [4:0] // I made this encoding scheme so i could light up debug LEDs but there are too many states lol
                      // These will probably change but wont affect any other modules
@@ -91,9 +90,12 @@ module FSM(
         SELECT_CURRENCY_CONVERT_1 = 5'b00111,
         SELECT_CURRENCY_CONVERT_2 = 5'b01000,
         WITHDRAW = 5'b01001,
-        SELECT_CURRENCY_WITHDRAW = 5'b01010,
+        SELECT_AMOUNT_WITHDRAW = 5'b01010,
         TRANSFER = 5'b01011,
-        SELECT_AMOUNT_TRANSFER = 5'b01100;
+        SELECT_CURRENCY_TRANSFER = 5'b01100,
+        SELECT_AMOUNT_TRANSFER = 5'b01101,
+        ERROR = 5'b01110,
+        SUCCESS = 5'b01111;
     
     initial state = IDLE;
     
@@ -131,8 +133,6 @@ module FSM(
                     state = IDLE;
                     display_out = CYCLING; //Default display out to show idle/welcome text or current prices
                     input_style = SINGLE_KEY; //any key will progress to next state
-                    
-                    
                 end
             ACC_NUM:
                 if (status_code == ACC_FOUND) begin //Move to next state if account was found
@@ -174,18 +174,22 @@ module FSM(
                 end else if (usr_input == WITHDRAW_OPTION) begin
                     state = WITHDRAW;
                     display_out = SCROLLING;
-                    input_style = CURRENCY_AMOUNT;
+                    input_style = CURRENCY_TYPE;
                 end else if (usr_input == TRANSFER_OPTION) begin
                     state = TRANSFER;
                     display_out = SCROLLING;
                     input_style = ACC_NUMBER;
+                end else if (status_code == EXIT) begin
+                    state = IDLE;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
                 end else begin
                     state = MENU;
                     display_out = SCROLLING;
                     input_style = MENU_SELECTION;          
                 end
             SHOW_BALANCES:
-                if (inc_state_edge) begin
+                if (status_code == EXIT) begin
                     state = MENU;
                     display_out = SCROLLING;
                     input_style = MENU_SELECTION;
@@ -195,60 +199,144 @@ module FSM(
                     input_style = SINGLE_KEY;
                 end
             CONVERT_CURRENCY:
-                if (inc_state_edge) begin
+                if (status_code == INPUT_COMPLETE) begin
                     state = SELECT_CURRENCY_CONVERT_1;
-                    
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_AMOUNT;
+                end else if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;    
                 end else begin
                     state = CONVERT_CURRENCY;
-                    
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_TYPE;
                 end
             SELECT_CURRENCY_CONVERT_1:
-                if (inc_state_edge) begin
-                    state = CURRENT_TIME;
-                    
+                if (status_code == AMT_VALID) begin
+                    state = SELECT_CURRENCY_CONVERT_2;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_TYPE;
+                end else if (status_code == AMT_INVALID) begin
+                    state = ERROR;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
+                end else if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;    
                 end else begin
-                    state = SET_FORMAT;
-                    
+                    state = SELECT_CURRENCY_CONVERT_1;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_AMOUNT;      
                 end
             SELECT_CURRENCY_CONVERT_2:
-                if (inc_state_edge) begin
-                    state = CURRENT_TIME;
-                    
+                if (status_code == INPUT_COMPLETE) begin
+                    state = SUCCESS;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
+                end else if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;
                 end else begin
-                    state = SET_FORMAT;
-                    
+                    state = SELECT_CURRENCY_CONVERT_2;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_TYPE;
                 end
             WITHDRAW:
-                if (inc_state_edge) begin
-                    state = CURRENT_TIME;
-                    
+                if (status_code == INPUT_COMPLETE) begin
+                    state = SELECT_AMOUNT_WITHDRAW;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_AMOUNT;
+                end else if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;    
                 end else begin
-                    state = SET_FORMAT;
-                    
+                    state = WITHDRAW;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_TYPE; 
                 end
-            SELECT_CURRENCY_WITHDRAW:
-                if (inc_state_edge) begin
-                    state = CURRENT_TIME;
-                    
+            SELECT_AMOUNT_WITHDRAW:
+                if (status_code == AMT_VALID) begin
+                    state = SUCCESS;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
+                end else if (status_code == AMT_INVALID) begin
+                    state = ERROR;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;    
                 end else begin
-                    state = SET_FORMAT;
-                    
+                    state = SELECT_AMOUNT_WITHDRAW;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_AMOUNT; 
                 end
             TRANSFER:
-                if (inc_state_edge) begin
-                    state = CURRENT_TIME;
-                    
+                if (status_code == ACC_FOUND) begin
+                    state = SELECT_CURRENCY_TRANSFER;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_TYPE;
+                end else if (status_code == ACC_NOT_FOUND) begin
+                    state = ERROR;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
+                end else if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;   
                 end else begin
-                    state = SET_FORMAT;
-                    
+                    state = TRANSFER;
+                    display_out = SCROLLING;
+                    input_style = ACC_NUMBER; 
+                end
+            SELECT_CURRENCY_TRANSFER:
+                if (status_code == INPUT_COMPLETE) begin
+                    state = SELECT_AMOUNT_TRANSFER;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_AMOUNT;
+                end else if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION; 
+                end else begin
+                    state = SELECT_AMOUNT_TRANSFER;
+                    display_out = SCROLLING;
+                    input_style = CURRENCY_TYPE;
                 end
             SELECT_AMOUNT_TRANSFER:
-                if (inc_state_edge) begin
-                    state = CURRENT_TIME;
-                    
+                if (status_code == AMT_VALID) begin
+                    state = SUCCESS;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
+                end else if (status_code == AMT_INVALID) begin
+                    state = ERROR;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;                      
                 end else begin
-                    state = SET_FORMAT;
-                    
+                    state = SELECT_AMOUNT_TRANSFER;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;
+                end
+            ERROR:
+                if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;                    
+                end else begin
+                    state = ERROR;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY; 
+                end
+            SUCCESS:
+                if (status_code == EXIT) begin
+                    state = MENU;
+                    display_out = SCROLLING;
+                    input_style = MENU_SELECTION;                    
+                end else begin
+                    state = SUCCESS;
+                    display_out = SCROLLING;
+                    input_style = SINGLE_KEY;
                 end
         endcase
         end
