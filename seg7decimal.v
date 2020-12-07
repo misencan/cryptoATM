@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer:
+// Company: Digilent Inc.
+// Engineer: Thomas Kappenman
 // 
-// Create Date:    12/05/2020 09:08:33 AM 
+// Create Date:    03/03/2015 09:08:33 PM 
 // Design Name: 
-// Module Name:    
-// Project Name: 
-// Target Devices: 
+// Module Name:    seg7decimal 
+// Project Name: Nexys4DDR Keyboard Demo
+// Target Devices: Nexys4DDR
 // Tool Versions: 
 // Description: 7 segment display driver
 // 
@@ -29,7 +29,7 @@ module seg7decimal(
 	 
 	 
 wire [2:0] s;	 
-reg [4:0] digit;
+reg [3:0] digit;
 wire [7:0] aen;
 reg [19:0] clkdiv;
 
@@ -48,12 +48,6 @@ always @(posedge clk)// or posedge clr)
 	case(s)
 	3'b000:digit = x[3:0]; // s is 00 -->0 ;  digit gets assigned 4 bit value assigned to x[3:0]
 	3'b001:digit = x[7:4]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
-    3'b010:digit = x[11:8]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
-    3'b011:digit = x[15:12]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
-    3'b100:digit = x[19:16]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
-    3'b101:digit = x[23:20]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
-    3'b110:digit = x[27:24]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
-    3'b111:digit = x[31:28]; // s is 01 -->1 ;  digit gets assigned 4 bit value assigned to x[7:4]
     default:digit = x[3:0];
 	
 	endcase
