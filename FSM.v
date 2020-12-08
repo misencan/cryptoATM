@@ -27,9 +27,10 @@ module FSM(
                      //Maybe Instead of forwarding user input to this module there is another module in the middle
                      //that verifies account numbers and pin numbers
     input status_code, //Status from middle module for use in progressing states that require more than a simple input 
-    output [3:0] current_state, //Current state code
+    output [15:0] current_state, //Current state code
     output display_enable, //Display output parameter that will have to get configured
-    output input_style_out //
+    output input_style_out,
+    output [15:0] state_led
     
     // I think we can base the input style parameter and the display enable parameter based off the current state value
     
@@ -79,23 +80,23 @@ module FSM(
         TRANSFER_OPTION = 2'b11;
     
     reg [10:0] state;
-    parameter [4:0] // I made this encoding scheme so i could light up debug LEDs but there are too many states lol
+    parameter [15:0] // I made this encoding scheme so i could light up debug LEDs but there are too many states lol
                      // These will probably change but wont affect any other modules
-        IDLE = 5'b00001,
-        ACC_NUM = 5'b00010,
-        PIN_INPUT = 5'b00011,
-        MENU = 5'b00100,
-        SHOW_BALANCES = 5'b00101,
-        CONVERT_CURRENCY = 5'b00110,
-        SELECT_CURRENCY_CONVERT_1 = 5'b00111,
-        SELECT_CURRENCY_CONVERT_2 = 5'b01000,
-        WITHDRAW = 5'b01001,
-        SELECT_AMOUNT_WITHDRAW = 5'b01010,
-        TRANSFER = 5'b01011,
-        SELECT_CURRENCY_TRANSFER = 5'b01100,
-        SELECT_AMOUNT_TRANSFER = 5'b01101,
-        ERROR = 5'b01110,
-        SUCCESS = 5'b01111;
+        IDLE = 16'b0000000000000001,
+        ACC_NUM = 16'b0000000000000010,
+        PIN_INPUT = 16'b0000000000000100,
+        MENU = 16'b0000000000001000,
+        SHOW_BALANCES = 16'b0000000000010000,
+        CONVERT_CURRENCY = 16'b0000000000100000,
+        SELECT_CURRENCY_CONVERT_1 = 16'b0000000001000000,
+        SELECT_CURRENCY_CONVERT_2 = 16'b0000000010000000,
+        WITHDRAW = 16'b0000000100000000,
+        SELECT_AMOUNT_WITHDRAW = 16'b0000001000000000,
+        TRANSFER = 16'b0000010000000000,
+        SELECT_CURRENCY_TRANSFER = 16'b0000100000000000,
+        SELECT_AMOUNT_TRANSFER = 16'b0001000000000000,
+        ERROR = 16'b0010000000000000,
+        SUCCESS = 16'b0100000000000000;
     
     initial state = IDLE;
     
@@ -120,8 +121,8 @@ module FSM(
     always @(posedge clk) begin // Use up button to increase state
         
         case(state)
-            IDLE:
-                if (usr_input) begin
+            IDLE: begin
+                if (status_code == INPUT_COMPLETE) begin
                     state = ACC_NUM;
                     display_out = SCROLLING; //TODO: Display "INPUT ACCOUNT NUMBER" Or something like that 
                                      //also should make an encoding scheme for what to display (Make a list of text to display)
@@ -134,7 +135,8 @@ module FSM(
                     display_out = CYCLING; //Default display out to show idle/welcome text or current prices
                     input_style = SINGLE_KEY; //any key will progress to next state
                 end
-            ACC_NUM:
+            end
+            ACC_NUM: begin
                 if (status_code == ACC_FOUND) begin //Move to next state if account was found
                     state = PIN_INPUT;
                     display_out = SCROLLING; // Display "INPUT PIN NUMBER"
@@ -148,7 +150,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = ACC_NUMBER;
                 end
-            PIN_INPUT:
+            end
+            PIN_INPUT: begin
                 if (status_code == PIN_CORRECT) begin
                     state = MENU;
                     display_out = SCROLLING;
@@ -162,7 +165,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = PIN_NUMBER;
                 end
-            MENU:
+            end
+            MENU: begin
                 if (usr_input == BALANCE) begin
                     state = SHOW_BALANCES;
                     display_out = SCROLLING;
@@ -188,7 +192,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = MENU_SELECTION;          
                 end
-            SHOW_BALANCES:
+            end
+            SHOW_BALANCES: begin
                 if (status_code == EXIT) begin
                     state = MENU;
                     display_out = SCROLLING;
@@ -198,7 +203,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = SINGLE_KEY;
                 end
-            CONVERT_CURRENCY:
+            end
+            CONVERT_CURRENCY: begin
                 if (status_code == INPUT_COMPLETE) begin
                     state = SELECT_CURRENCY_CONVERT_1;
                     display_out = SCROLLING;
@@ -212,7 +218,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = CURRENCY_TYPE;
                 end
-            SELECT_CURRENCY_CONVERT_1:
+            end
+            SELECT_CURRENCY_CONVERT_1: begin
                 if (status_code == AMT_VALID) begin
                     state = SELECT_CURRENCY_CONVERT_2;
                     display_out = SCROLLING;
@@ -230,7 +237,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = CURRENCY_AMOUNT;      
                 end
-            SELECT_CURRENCY_CONVERT_2:
+            end
+            SELECT_CURRENCY_CONVERT_2: begin
                 if (status_code == INPUT_COMPLETE) begin
                     state = SUCCESS;
                     display_out = SCROLLING;
@@ -244,7 +252,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = CURRENCY_TYPE;
                 end
-            WITHDRAW:
+            end
+            WITHDRAW: begin
                 if (status_code == INPUT_COMPLETE) begin
                     state = SELECT_AMOUNT_WITHDRAW;
                     display_out = SCROLLING;
@@ -258,7 +267,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = CURRENCY_TYPE; 
                 end
-            SELECT_AMOUNT_WITHDRAW:
+            end
+            SELECT_AMOUNT_WITHDRAW: begin
                 if (status_code == AMT_VALID) begin
                     state = SUCCESS;
                     display_out = SCROLLING;
@@ -272,7 +282,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = CURRENCY_AMOUNT; 
                 end
-            TRANSFER:
+            end
+            TRANSFER: begin
                 if (status_code == ACC_FOUND) begin
                     state = SELECT_CURRENCY_TRANSFER;
                     display_out = SCROLLING;
@@ -290,7 +301,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = ACC_NUMBER; 
                 end
-            SELECT_CURRENCY_TRANSFER:
+            end
+            SELECT_CURRENCY_TRANSFER: begin
                 if (status_code == INPUT_COMPLETE) begin
                     state = SELECT_AMOUNT_TRANSFER;
                     display_out = SCROLLING;
@@ -304,7 +316,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = CURRENCY_TYPE;
                 end
-            SELECT_AMOUNT_TRANSFER:
+            end
+            SELECT_AMOUNT_TRANSFER: begin
                 if (status_code == AMT_VALID) begin
                     state = SUCCESS;
                     display_out = SCROLLING;
@@ -318,7 +331,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = MENU_SELECTION;
                 end
-            ERROR:
+            end
+            ERROR: begin
                 if (status_code == EXIT) begin
                     state = MENU;
                     display_out = SCROLLING;
@@ -328,7 +342,8 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = SINGLE_KEY; 
                 end
-            SUCCESS:
+            end
+            SUCCESS: begin
                 if (status_code == EXIT) begin
                     state = MENU;
                     display_out = SCROLLING;
@@ -338,8 +353,10 @@ module FSM(
                     display_out = SCROLLING;
                     input_style = SINGLE_KEY;
                 end
+            end
         endcase
         end
-       
+        
+        assign state_led = current_state;
     
 endmodule
