@@ -27,6 +27,7 @@ module ATM(
     input [3:0] current_state,
     input [1:0] menuOption,
     input [10:0] amount,
+    input ready,
     output reg [10:0] balance,
     output [3:0] status_code
     );
@@ -149,7 +150,7 @@ module ATM(
     reg status_code_reg;
     
     authenticator authAccNumberModule(accNumber, pin, AUTHENTICATE, deAuth, isAuthenticated, accIndex);
-    authenticator accFinder(accNumber, pin, FIND, deAuth, accFound, accIndexFind);
+    authenticator accFinder(accNumber, 0, FIND, deAuth, accFound, accIndexFind);
     authenticator findAccNumberModule(destinationAcc, 0, FIND, deAuth, wasFound, destinationAccIndex);
     
     always @(posedge clk) begin
@@ -157,18 +158,19 @@ module ATM(
     case (current_state)
         
         ACC_NUM: begin
-            if (accFound)
+            if ((ready == 1'b1) & accFound)
                 status_code_reg = ACC_FOUND;
-            else
+            else if ((ready == 1'b1) & ~accFound)
                 status_code_reg = ACC_NOT_FOUND;
         end
         
         PIN_INPUT: begin
-            if (isAuthenticated)
+            if ((ready == 1'b1) & isAuthenticated)
                 status_code_reg = PIN_CORRECT;
-            else
+            else if ((ready == 1'b1) & ~isAuthenticated)
                 status_code_reg = PIN_INCORRECT;
         end
+        
         
         SHOW_BALANCES: begin
             balance_dollars = balance_database[accIndex][0];
@@ -182,15 +184,35 @@ module ATM(
         end
         
         SELECT_AMOUNT_WITHDRAW: begin
-            if (amount <= balance_database[accIndex][currency_type]) begin
+            if ((ready == 1'b1) & (amount <= balance_database[accIndex][currency_type])) begin
                 balance_database[accIndex][currency_type] = balance_database[accIndex][currency_type] - amount;
                 balance = balance_database[accIndex][currency_type];
                 status_code_reg = AMT_VALID;
-            end else begin
+            end else if ((ready == 1'b1) & (amount > balance_database[accIndex][currency_type])) begin
                 status_code_reg = AMT_INVALID;
             end
         end
         
+        TRANSFER: begin
+            if ((ready == 1'b1) & (wasFound == 1'b1)) begin
+                status_code_reg = ACC_FOUND;
+            end else if ((ready == 1'b1) & (wasFound == 1'b0)) begin
+                status_code_reg = ACC_NOT_FOUND;
+            end
+        end
+        
+        SELECT_AMOUNT_TRANSFER: begin
+            if ((ready == 1'b1) & (amount <= balance_database[accIndex][currency_type]) & (balance_database[accIndex][currency_type] + amount < 2048)) begin
+                balance_database[destinationAccIndex][currency_type] = balance_database[destinationAccIndex][currency_type] + amount;
+                balance_database[destinationAccIndex][currency_type] = balance_database[accIndex][currency_type] - amount;
+                status_code_reg = AMT_VALID;
+            end else if ((ready == 1'b1) & ((amount > balance_database[accIndex][currency_type]) | (balance_database[accIndex][currency_type] + amount > 2048))) begin
+                status_code_reg = AMT_INVALID;
+            end
+        end
+        
+        ERROR: begin
+        end
         
     endcase
     end
