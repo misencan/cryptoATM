@@ -89,7 +89,7 @@ module user_input(
      reg count =0;
     // account, pin input
     always@(posedge clk) begin
-     if(ascii_code == 8'h71) // q   
+        if(ascii_code == 8'h71)         // q   
                 begin
                     status_codeo <= EXIT;
                 end   
@@ -134,6 +134,25 @@ module user_input(
                  end
                  //assign status_codeo = (pswd == 16'b0000000000000000) ? PIN_INCORRECT : PIN_CORRECT
                  end
+            
+            // Added menu selection and single key
+              MENU_SELECTION:
+                  case(ascii_code)
+                      8'h62:                               // b key (balance)
+                        usr_input = BALANCE;
+                      8'h63:                               // c (convert currency)
+                        usr_input = CONVERT;
+                      8'h77:                               // w (withdraw)
+                        usr_input = WITHDRAW_OPTION;
+                      8'h74:                               // t (transfer)
+                        usr_input = TRANSFER_OPTION;
+                   endcase
+            
+               SINGLE_KEY:
+                   if(ascii_code == 8'h0D) begin        // Enter button pressed
+                       status_code = INPUT_COMPLETE;
+                   end
+            
           endcase
     end
 endmodule
